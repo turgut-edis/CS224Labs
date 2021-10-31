@@ -1,0 +1,225 @@
+CS224
+Lab 1
+Section 5
+Turgut Alp Edis
+21702587
+
+## Part 3
+## Displays the address and value of array elements
+## Calculates Average, Max and Min Values
+
+#text segment#
+
+.text		 
+start:
+	la $s0, array	#Load the array to s0
+	la $s1, arrsize	#Load array size to s1
+	lw $t0, 0($s1)	#t0 = array size
+	addi $t1, $0, 0 #t1 = i
+	add $s2, $0, $t0 #s2 = max
+	add $s3, $0, $t0 #s3 = min
+	addi $s4, $0, 0 #s4 = total
+	addi $s5, $0, 0 #s5 = avg
+	
+	#Display messages in console
+	la $a0,disp1	
+	li $v0,4	
+	syscall	
+	la $a0,disp2	
+	li $v0,4	
+	syscall	
+	la $a0,disp3	
+	li $v0,4	
+	syscall
+	la $a0,endLine	
+	li $v0,4	
+	syscall		
+	
+	Loop:
+		beq $t0, $0, doneZero	# if size = 0, finish the loop with no calculations
+		beq $t0, $t1, done	# i < size
+		sll $t2, $t1, 2		
+		add $t2, $t2, $s0	#t2 = address of array[i]
+		
+		li $v0, 34
+		add $a0, $zero, $t2	#Print address in hex form
+		syscall
+		
+		li $v0, 4
+		la $a0, tabLine		#Put tab between address and value
+		syscall
+		
+		lw $t2, 0($t2)		#t2 = array[i]
+		
+		li $v0, 1
+		la $a0, ($t2)		#Print the value of array[i]
+		syscall
+		
+		li $v0, 4
+		la $a0, endLine		#Go to next line
+		syscall 
+		
+		add $s4, $s4, $t2	#total = total + array[i]
+		add $t1, $t1, 1		#i = i + 1
+		
+		sge $t4, $t2, $s2	#if array[i] > max
+		bne $t4, $0, calcMax	#max = array[i]
+		
+		sle $t3, $t2, $s3	#if array[i] < min
+		bne $t3, $0, calcMin	#min = array[i]
+		
+		j Loop			#Jump to beginning of loop
+	calcMin:	#Sets new minimum element
+		move $s3, $t2
+		j Loop
+		
+	calcMax:	#Sets new maximum element
+		move $s2, $t2
+		j Loop
+		
+	doneZero:
+		li $v0, 4
+		la $a0, zero
+		syscall
+		
+		li $v0, 10
+		syscall
+		
+	done:		
+		div $s5, $s4, $t0	
+		mflo $s5		#Calculate the average value
+		li $v0, 4
+		la $a0, avgS
+		syscall
+		li $v0, 1
+		la $a0, ($s5)		#Prints average value
+		syscall
+		
+		li $v0, 4
+		la $a0, endLine
+		syscall
+		
+		li $v0, 4
+		la $a0, maxS
+		syscall
+		li $v0, 1
+		la $a0, ($s2)		#Prints maximum value in array
+		syscall
+		
+		li $v0, 4
+		la $a0, endLine
+		syscall
+		
+		li $v0, 4
+		la $a0, minS		
+		syscall
+		li $v0, 1
+		la $a0, ($s3)		#Prints minimum value in array
+		syscall
+		
+		li $v0, 4
+		la $a0, endLine
+		syscall
+		
+		li $v0,10  		# system call to exit
+		syscall
+
+
+#data segment#
+
+.data
+disp1:	.asciiz "Memory Address\tArray Element\n"
+disp2:	.asciiz "Position(hex)\tValue(int)\n"
+disp3:	.asciiz "=============\t========"
+array:	.word	1,200,-3,72,13,700,29,3,2,-22,12,-12
+arrsize: .word 12
+endLine: .asciiz "\n"
+tabLine: .asciiz "\t"
+avgS:	.asciiz "Average: "
+maxS:	.asciiz "Max: "
+minS:	.asciiz "Min: "
+zero: .asciiz "There is no element in the array\n"
+
+##
+## end of file part3.asm
+
+## Part 4 - Takes input from user and calculates given arithmetic operation
+## A = (B % C + D) / B * (C - D)
+
+#text segment#
+
+.text
+		
+start:
+	
+	addi $s0, $0, 0		#s0 = result
+	
+	la $a0, prompt		#Print prompt for program and calls system
+	li $v0, 4
+	syscall
+	
+	la $a0, endL		#New line
+	li $v0, 4
+	syscall
+	
+	la $a0, valueInb	#Takes the input b and store in s1
+	li $v0, 4
+	syscall
+	li $v0, 5
+	syscall
+	la $s1, ($v0) 
+	
+	la $a0, valueInc	#Takes the input c and store in s2
+	li $v0, 4
+	syscall
+	li $v0, 5
+	syscall
+	la $s2, ($v0) 
+	
+	la $a0, valueInd	#Takes the input d and store in s3
+	li $v0, 4
+	syscall
+	li $v0, 5
+	syscall
+	la $s3, ($v0)   
+	#s0 = a, s1 = b, s2 = c, s3 = d
+	
+	div $t0, $s1, $s2	#t0 = B / C
+	mfhi $t0		#t0 = B % C
+	sub  $t1, $s2, $s3	#t1 = C - D
+	add $t2, $t0, $s3	#t2 = B % C + D
+	div $t2, $t2, $s1	#t2 = (B % C + D) / B
+	mflo $t2		#t2 = quotient of (B % C + D) / B 
+	mul $s0, $t2, $t1 	#a = (B % C + D) / B * (C - D)
+	
+	li $v0, 4
+	la $a0, express		#Prints the expression
+	syscall
+	la $a0, answer		#Prints result prompt
+	li $v0, 4
+	syscall 
+	la $a0,($s0)		#Output prints on terminal
+	li $v0,1		
+	syscall
+	la $a0, endL
+	li $v0, 4
+	syscall
+
+	
+	li $v0,10		#System call to exit
+	syscall		
+
+
+#data segment#
+
+.data
+prompt:	.asciiz "A = (B % C + D) / B * (C - D)"
+valueInb: .asciiz "Please enter value for b: "
+valueInc: .asciiz "Please enter value for c: "
+valueInd: .asciiz "Please enter value for d: "
+express: .asciiz "Expression: (B % C + D) / B * (C - D)\n"
+answer:	.asciiz "The result for the expression is "
+endL:	.asciiz "\n"
+
+##
+## end of file part4.asm

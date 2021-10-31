@@ -1,0 +1,358 @@
+CS224
+02
+05
+Turgut Alp Edis
+21702587
+
+# Lab2 Part 3 - Process the given array with 4 subprograms
+# getArray - returns the first element and size of the array
+# PrintArray - Prints the contents of an array
+# CheckSymmetric - returns 1 if the array is symmetric, 0 if it is not
+# FindMindMax - returns min and max elements in the array
+.data
+spac: .asciiz " "
+prompt: .asciiz "Enter the array size: "
+zeroEl: .asciiz "There is no element in the array"
+sym: .asciiz "\nThe array is symmetric\n"
+symnot: .asciiz "\nThe array is not symmetric\n"
+mins: .asciiz "Min: "
+maxs: .asciiz "Max: "
+elem: .asciiz "Enter the element of array: "
+
+
+.text 
+main:
+	
+	jal getArray
+	move $a0, $v0
+	move $a1, $v1
+	jal CheckSymmetric	#Call check symmetric
+	beq $v0, $0, notsymmetric	#If not symmetric, state in console
+	bne $v0, $0, symmetric		#If symmetric, state in console
+	continue:		#Continue with find max and min values		
+	jal FindMinMax		#return v0 to min, v1 to max
+	move $s0, $v0		#s0 min
+	move $s1, $v1		#s1 max
+	#Print min value
+	la $a0, mins
+	li $v0, 4
+	syscall
+	la $a0, ($s0)
+	li $v0, 1
+	syscall
+	#Print max value
+	la $a0, maxs
+	li $v0, 4
+	syscall
+	la $a0, ($s1)
+	li $v0, 1
+	syscall
+	li $v0, 10
+	syscall
+	
+	doneZero:
+	la $a0, zeroEl
+	li $v0, 4
+	syscall
+	li $v0, 10
+	syscall
+	
+	notsymmetric:
+		sw $a0, 0($sp)
+		la $a0, symnot
+		li $v0, 4
+		syscall
+		lw $a0, 0($sp)
+		j continue
+	
+	symmetric:
+		sw $a0, 0($sp)
+		la $a0, sym
+		li $v0, 4
+		syscall
+		lw $a0, 0($sp)
+		j continue
+		
+getArray:
+	addi $sp, $sp, -20
+	sw $s4, 16($sp)
+	sw $s0, 12($sp)
+	sw $s1, 8($sp)
+	sw $s2, 4($sp)
+	sw $s3, 0($sp)
+	addi $s2, $0, 0 #s2 = i
+	la $a0,prompt	# output prompt message on terminal
+	li $v0,4	# syscall 4 prints the string
+	syscall
+
+	li $v0, 5	# syscall 5 reads an integer
+	syscall
+	
+	move $v1, $v0
+	sll $s0, $v1, 2		#s0 = byte rep of size
+	beq $v1, $0, doneZero	#If size = 0, print nothing
+	#dynamic allocation
+	move $a0, $s0
+	li $v0,9
+	syscall
+	move $s1, $v0 		#s1 = first element address
+	move $s4, $s1
+	getLoop:
+		beq $s2, $v1, doneGet
+		la $a0,elem	# output prompt message on terminal
+		li $v0,4	# syscall 4 prints the string
+		syscall
+		li $v0, 5	# syscall 5 reads an integer
+		syscall
+		move $s3, $v0 	#s3 = element
+		sw $s3, 0($s4)
+		add $s4, $s4, 4
+		add $s2, $s2, 1
+		j getLoop
+	doneGet:
+		j PrintArray
+		
+	
+	PrintArray:
+	addi $sp, $sp, -16	#Allocate space to save values
+	sw $v0, 12($sp)
+	sw $s0, 8($sp)
+	sw $s1, 4($sp)
+	sw $s2, 0($sp)
+	move $s0, $s1
+	addi $s1, $0, 0
+	beginPrint:
+	slt $s2, $s1, $v1
+	beq $s2, $0, donePrint	
+	sll $s2, $s1, 2
+	add $s2, $s2, $s0
+	lw $s2, 0($s2)		#t2 = array[i]
+	#Print the element array[i]
+	la $a0, ($s2)
+	li $v0, 1
+	syscall
+	la $a0, spac
+	li $v0, 4
+	syscall
+	add $s1, $s1, 1		#i = i + 1
+	j beginPrint
+	donePrint: 
+	move $a0, $s0
+	lw $s2, 0($sp)
+	lw $s1, 4($sp)
+	lw $s0, 8($sp)
+	lw $v0, 12($sp)
+	addi $sp, $sp, 12
+	
+	move $v0, $s1
+	lw $s3, 0($sp)
+	lw $s2, 4($sp)
+	lw $s1, 8($sp)
+	lw $s0, 12($sp)
+	lw $s4, 16($sp)
+	addi $sp, $sp, 20
+	jr $ra
+	
+	
+
+CheckSymmetric:
+	addi $sp, $sp, -20	#Allocate space to save values
+	sw $a0, 16($sp)
+	sw $s0, 12($sp)
+	sw $s1, 8($sp)
+	sw $s2, 4($sp)
+	sw $s3, 0($sp)
+	addi $s0, $0, 0
+	add $s1, $a1, -1
+	continueCheck:
+	bgt $s0, $s1, doneCheck
+	sll $s2, $s0, 2
+	sll $s3, $s1, 2
+	add $s2, $s2, $a0
+	add $s3, $s3, $a0
+	lw $s2, 0($s2)
+	lw $s3, 0($s3)
+	bne $s2, $s3, doneNot
+	add $s0, $s0, 1
+	add $s1, $s1, -1
+	j continueCheck
+	doneNot:
+	lw $s3, 0($sp)
+	lw $s2, 4($sp)
+	lw $s1, 8($sp)
+	lw $s0, 12($sp)
+	lw $a0, 16($sp)
+	addi $sp, $sp, 20
+	addi $v0, $0, 0
+	jr $ra
+	doneCheck:
+	lw $s3, 0($sp)
+	lw $s2, 4($sp)
+	lw $s1, 8($sp)
+	lw $s0, 12($sp)
+	lw $a0, 16($sp)
+	addi $sp, $sp, 20
+	addi $v0, $0, 1
+	jr $ra
+	
+FindMinMax:
+	addi $sp, $sp, -16
+	sw $s0, 12($sp)
+	sw $s1, 8($sp)
+	sw $s2, 4($sp)
+	sw $s3, 0($sp)
+	addi $s0, $0, 0		#i = 0
+	lw $v0, 0($a0)		#v0 = min
+	lw $v1, 0($a0)		#v1 = max
+	con:
+	slt $s1, $s0, $a1
+	beq $s1, $0, done
+	sll $s1, $s0, 2
+	add $s1, $s1, $a0
+	lw $s1, 0($s1)
+	add $s0, $s0, 1
+	sge $s3, $s1, $v1
+	bne $s3, $0, max
+	sle $s2, $s1, $v0
+	bne $s2, $0, min
+	j con	
+	max:
+	move $v1, $s1
+	j con
+	min:
+	move $v0, $s1
+	j con
+	done:
+	lw $s3, 0($sp)
+	lw $s2, 4($sp)
+	lw $s1, 8($sp)
+	lw $s0, 12($sp)
+	addi $sp, $sp, 16
+	jr $ra 
+
+#Lab 2 Part 4 - Count the pattern in given number and return the value
+#countBitPat - Counts the occurence of bit pattern in given number
+.text
+
+main:
+	la $a0, prompt
+	li $v0, 4
+	syscall
+	li $v0, 5
+	syscall
+	add $a0, $0, $v0
+	li $v0, 34
+	syscall
+	move $s0, $a0
+	la $a0, endLine
+	li $v0, 4
+	syscall
+	
+	
+	la $a0, prompt1
+	li $v0, 4
+	syscall
+	li $v0, 5
+	syscall
+	add $a0, $0, $v0
+	li $v0, 34
+	syscall
+	move $s1, $a0
+	la $a0, endLine
+	li $v0, 4
+	syscall
+	
+	la $a0, prompt2
+	li $v0, 4
+	syscall
+	li $v0, 5
+	syscall
+	move $s2, $v0
+	
+	move $a0, $s0
+	move $a1, $s1
+	move $a2, $s2
+	
+	jal countBitPat
+	
+	move $a0, $v0
+	li $v0, 1
+	syscall
+	li $v0, 10
+	syscall
+	
+countBitPat:
+	addi $sp, $sp, -32
+	sw $s0, 28($sp)
+	sw $s1, 24($sp)
+	sw $s2, 20($sp)
+	sw $s3, 16($sp)
+	sw $s4, 12($sp)
+	sw $s5, 8($sp)
+	sw $s6, 4($sp)
+	sw $a1, 0($sp)
+	
+	addi $s0, $0, 0 	#s0 holds i for inner loop
+	addi $s3, $0, 0		#s3 holds count
+	addi $s5, $s5, 0	#s5 holds j for out loop
+	addi $s4, $0, 32	#max byte number
+	div $s4, $s4, $a2	#max/pattern count for out loop
+	move $s6, $a0		#s6 = pattern
+	bitLoop:
+		bge $s0, $a2, doneP 	#if i = pattern cnt => finish the loop
+		addi $s2, $0, 1 	
+		and $s2, $s2, $s6	#s2 holds least significant bit
+		and $s1, $s2, $a1	#first bytes of number
+		bne $s1, $s2, waitNext	#if they are not equal move them until pattern ends
+		
+		srl $a1, $a1, 1		#shift right main number 1 byte 
+		srl $s6, $s6, 1		#shift right pattern 1 byte
+		
+		add $s0, $s0, 1		#i++
+		j bitLoop
+	waitNext:
+		beq $s0, $a2, doneWP	#if the pattern done, go to done without increment
+		srl $a1, $a1, 1		
+		srl $s6, $s6, 1	
+		addi  $s2, $0, 1 	
+		and $s2, $s2, $s6
+		add $s0, $s0, 1
+		j waitNext
+		
+	doneP:
+		beq $s5, $s4, end	#if j reaches max/pattern, end all loops
+		addi $s3, $s3, 1	#count++
+		addi $s5, $s5, 1	#j++
+		addi $s0, $0, 0		#reset the index
+		beq $s6, $0, loadA	
+		j bitLoop
+	doneWP:
+		beq $s5, $s4, end
+		addi $s5, $s5, 1
+		addi $s0, $0, 0
+		beq $s6, $0, loadA
+		j bitLoop
+	
+	loadA:
+		move $s6, $a0		#load pattern again if no value left
+		j bitLoop
+		
+	end:
+		move $v0, $s3
+		lw $a1, 0($sp)
+		lw $s6, 4($sp)
+		lw $s5, 8($sp)
+		lw $s4, 12($sp)
+		lw $s3, 16($sp)
+		lw $s2, 20($sp)
+		lw $s1, 24($sp)
+		lw $s0, 28($sp)
+		addi $sp, $sp,32
+		jr $ra
+	
+
+.data
+prompt: .asciiz "Enter pattern: "
+prompt1: .asciiz "Enter integer value: "
+prompt2: .asciiz "Enter pattern count: "
+endLine: .asciiz "\n"
